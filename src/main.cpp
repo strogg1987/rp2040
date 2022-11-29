@@ -1,67 +1,65 @@
 #include <Arduino.h>
 
 #include <Wire.h>
-#include <SparkFun_APDS9960.h>
+#include <Arduino_APDS9960.h>
 #include <PluggableUSBHID.h>
 #include <USBKeyboard.h>
-USBKeyboard Keyboard;
-SparkFun_APDS9960 apds = SparkFun_APDS9960();
-//sda - 4 scl - 5
 
-void setup() {
-  Wire.begin();
+USBKeyboard Keyboard;
+// SparkFun_APDS9960 apds = SparkFun_APDS9960();
+// sda - 4 scl - rp5
+MbedI2C myi2c(p4, p5);
+APDS9960 apds(myi2c, 6);
+void setup()
+{
+
+  myi2c.begin();
   Serial.begin(9600);
 
-
-  Wire.setClock(400000);
-
+  myi2c.setClock(400000);
 
   delay(3000);
-Keyboard.key_code('R');
-Keyboard.key_code('P');
-  // Initialize APDS-9960 (configure I2C and initial values)
-  if ( apds.init() ) {
-    Serial.println(F("APDS-9960 initialization complete"));
-  } else {
-    Serial.println(F("Something went wrong during APDS-9960 init!"));
-  }
-  apds.enableGestureSensor(false);
-    // Wait for initialization and calibration to finish
-  delay(1000);
 
+  apds.begin();
+
+  apds.setGestureSensitivity(80);
+Serial.println("start");
+  delay(1000);
 }
 
+void loop()
+{
+  if (apds.gestureAvailable())
+  {
+    // a gesture was detected, read and print to Serial Monitor
+    int gesture = apds.readGesture();
 
-void loop() {
+    switch (gesture)
+    {
+    case GESTURE_UP:
+      Serial.println("Detected UP gesture");
+      break;
 
-   if ( apds.isGestureAvailable() ) {
-    switch ( apds.readGesture() ) {
-      case DIR_UP:
-        Serial.println("UP");
-        break;
-      case DIR_DOWN:
-        Serial.println("DOWN");
-        break;
-      case DIR_LEFT:
-        Serial.println("LEFT");
-        Keyboard.key_code(LEFT_ARROW);
-        break;
-      case DIR_RIGHT:
-        Serial.println("RIGHT");
-        Keyboard.key_code(RIGHT_ARROW);
-        break;
-      case DIR_NEAR:
-        Serial.println("NEAR");
-        break;
-      case DIR_FAR:
-        Serial.println("FAR");
-        break;
-      default:
-        Serial.println("NONE");
+    case GESTURE_DOWN:
+      Serial.println("Detected DOWN gesture");
+      break;
+
+    case GESTURE_LEFT:
+      Serial.println("Detected LEFT gesture");
+      Keyboard.key_code(LEFT_ARROW);
+      ;
+      break;
+
+    case GESTURE_RIGHT:
+      Serial.println("Detected RIGHT gesture");
+      Keyboard.key_code(RIGHT_ARROW);
+      break;
+
+    default:
+      // ignore
+      break;
     }
   }
   // Wait 1 second before next reading
   delay(100);
-
-  
 }
